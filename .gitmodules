@@ -1,0 +1,9 @@
+[submodule "api"]
+	path = api
+	url = https://github.com/nakanoi/cook_api
+[submodule "frontend"]
+	path = frontend
+	url = https://github.com/nakanoi/cook_front
+[submodule "py"]
+	path = py
+	url = https://github.com/nakanoi/cook_python
