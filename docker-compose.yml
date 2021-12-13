@@ -2,70 +2,82 @@ version: "3.4"
 services:
   cook_db:
     build: ./mysql/
-    container_name: cook_db
+    container_name: ${MYSQL_HOST}
     environment:
       MYSQL_DATABASE: ${MYSQL_DATABASE}
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      TZ: Asia/Tokyo
     volumes:
-      - cook_db_data:/var/log/mysql
+      - ./mysql/data/:/var/lib/mysql/
+      - ./mysql/initial_sql/:/docker-entrypoint-initdb.d/
     healthcheck:
       test: ["CMD-SHELL", "mysqladmin ping --host=127.0.0.1 --user=${MYSQL_USER} --password=${MYSQL_PASSWORD} --port=3306"]
     ports:
       - "3306:3306"
   cook_rails:
     build: ./api/server/
-    container_name: cook_api_rails
+    container_name: cook_rails
     command: ["./run.sh"]
     env_file:
       - ./api/server/.env
     volumes:
       - ./api/server/:/code/
-      - cook_public:/code/public/
     environment:
       TZ: Asia/Tokyo
-      RAILS_ENV: development
+      LANG: ja_JP.UTF-8
+      RAILS_ENV: ${DOCKER_ENV}
     depends_on:
       cook_db:
         condition: service_healthy
     ports:
       - "3000:3000"
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:3000 || exit 1"]
+      test: ["CMD-SHELL", "curl -f https://localhost:3000/api/v1/auth/sessions --insecure || exit 1"]
   cook_api_nginx:
     build: ./api/nginx/
     container_name: cook_api_nginx
-    volumes:
-      - cook_public:/code/public/
+    environment:
+      TZ: Asia/Tokyo
+      LANG: ja_JP.UTF-8
     ports:
-      - "8080:80"
+      - "8443:443"
     depends_on:
       cook_rails:
         condition: service_healthy
   cook_react:
     build: ./frontend/
     container_name: cook_react
+    environment:
+      TZ: Asia/Tokyo
+      LANG: ja_JP.UTF-8
     volumes:
       - ./frontend/front/:/code/
     ports:
       - "8000:8000"
     command: ["/run.sh"]
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8000 || exit 1"]
+      test: ["CMD-SHELL", "curl -f https://localhost:8000 --insecure || exit 1"]
   cook_front_nginx:
     build: ./frontend/nginx/
     container_name: cook_front_nginx
+    environment:
+      TZ: Asia/Tokyo
+      LANG: ja_JP.UTF-8
+    volumes:
+      - ./frontend/front/build/:/code/build
     ports:
-      - "80:80"
+      - "443:443"
     depends_on:
       cook_react:
         condition: service_healthy
   cook_python:
     build: ./py/
     container_name: cook_python
+    environment:
+      TZ: Asia/Tokyo
+      LANG: ja_JP.UTF-8
     volumes:
-      - ./:/code/
-volumes:
-  cook_db_data:
-  cook_public:
+      - ./py/:/code/
+    command: ["/usr/sbin/cron", "-f"]
