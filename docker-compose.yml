@@ -2,13 +2,8 @@ version: "3.4"
 services:
   cook_db:
     build: ./mysql/
-    container_name: ${MYSQL_HOST}
-    environment:
-      MYSQL_DATABASE: ${MYSQL_DATABASE}
-      MYSQL_USER: ${MYSQL_USER}
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
-      TZ: Asia/Tokyo
+    container_name: cook_db
+    env_file: ./mysql/.env
     volumes:
       - ./mysql/data/:/var/lib/mysql/
       - ./mysql/initial_sql/:/docker-entrypoint-initdb.d/
@@ -20,14 +15,9 @@ services:
     build: ./api/server/
     container_name: cook_rails
     command: ["./run.sh"]
-    env_file:
-      - ./api/server/.env
     volumes:
       - ./api/server/:/code/
-    environment:
-      TZ: Asia/Tokyo
-      LANG: ja_JP.UTF-8
-      RAILS_ENV: ${DOCKER_ENV}
+    env_file: ./api/server/.env
     depends_on:
       cook_db:
         condition: service_healthy
@@ -38,35 +28,27 @@ services:
   cook_api_nginx:
     build: ./api/nginx/
     container_name: cook_api_nginx
-    environment:
-      TZ: Asia/Tokyo
-      LANG: ja_JP.UTF-8
+    env_file: ./api/nginx/.env
     ports:
       - "8443:443"
     depends_on:
       cook_rails:
         condition: service_healthy
   cook_react:
-    build: ./frontend/
+    build: ./frontend/front/
     container_name: cook_react
-    environment:
-      TZ: Asia/Tokyo
-      LANG: ja_JP.UTF-8
+    env_file: ./frontend/front/.env
     volumes:
       - ./frontend/front/:/code/
     ports:
       - "8000:8000"
-    command: ["/run.sh"]
+    command: ["./run.sh"]
     healthcheck:
       test: ["CMD-SHELL", "curl -f https://localhost:8000 --insecure || exit 1"]
   cook_front_nginx:
     build: ./frontend/nginx/
     container_name: cook_front_nginx
-    environment:
-      TZ: Asia/Tokyo
-      LANG: ja_JP.UTF-8
-    volumes:
-      - ./frontend/front/build/:/code/build
+    env_file: ./frontend/nginx/.env
     ports:
       - "443:443"
     depends_on:
@@ -75,9 +57,7 @@ services:
   cook_python:
     build: ./py/
     container_name: cook_python
-    environment:
-      TZ: Asia/Tokyo
-      LANG: ja_JP.UTF-8
+    env_file: ./py/.env
     volumes:
       - ./py/:/code/
     command: ["/usr/sbin/cron", "-f"]
